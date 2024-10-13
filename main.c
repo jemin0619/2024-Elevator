@@ -1,8 +1,3 @@
-//IMPL
-//자동 속도조절, 비상정지
-//Utility에 move_up, move_down, open, close 완성시키기
-//FND 처리해줘야되고, 상중하 LED 처리까지 해줘야됨
-
 #define F_CPU 16000000
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -26,7 +21,8 @@ void ready(){
 	sei();
 }
 
-#pragma region VARIABLES
+#pragma region VARIABLES, Constants
+const int FND[] = {0b01000000, 0b01111001, 0b00100100, 0b00110000, 0b00011001, 0b0010010, 0b0000010, 0b11111000, 0b00000000, 0b00011000, 0b01111111};
 volatile unsigned int cnt = 0; //타이머 기록 저장용
 volatile int isTimerFin = 1; //타이머가 끝났는가?
 volatile int sw_floor[5] = {0,0,0,0,0};
@@ -59,6 +55,7 @@ ISR(INT5_vect){
 }
 #pragma endregion
 
+//TODO : IMPL move_up(), move_down(), open(), close(), updateSw()
 #pragma region UTILITY
 void move_up(){
 	_delay_ms(MotorDel);
@@ -141,6 +138,13 @@ void updateLed(){
 	if(sw_down[4]) PORTF |= 0x20;
 	else PORTF &= ~0x20;
 }
+
+void updateFndAnd3LEDs(){
+	PORTA = FND[curFloor];
+	PORTC &= ~0x07;
+	if(curFloor<destFloor) PORTC |= 0x03;
+	if(curFloor>destFloor) PORTC |= 0x06;
+}
 #pragma endregion
 
 ISR(TIMER0_OVF_vect){
@@ -159,6 +163,7 @@ int main(void){
     while(1){
 		updateSw();
 		updateLed();
+		updateFndAnd3LEDs();
 		
 		//목적지가 정해지지 않았다면 현재 층에서 거리가 가장 먼 버튼이 눌린 층을 찾고, destFloor에 저장한다.
 		if(destFloor==-1 && isTimerFin==1){
@@ -189,6 +194,7 @@ int main(void){
 				if(isTimerFin==0){ //타이머가 끝날때까지 대기
 					updateSw();
 					updateLed();
+					updateFndAnd3LEDs();
 					continue;
 				}
 				
@@ -208,6 +214,7 @@ int main(void){
 				
 				//다음 층 이동이 물리적으로 완료되었다면 현재 층 정보도 업데이트해줌
 				if(photo[curFloor+dir]) curFloor+=dir;
+				updateFndAnd3LEDs();
 			}
 			open();
 			TIMSK = 0x01;
