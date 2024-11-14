@@ -11,10 +11,13 @@ TODO
 일단 급하게 B0~B3를 G0~G3으로 옮김
 이 경우 문을 열고 닫는 동작이 불가능하게 되는데 일단 추후에 도전하기로...
 가능은 함. B1을 안쓴다고 햇을때 남는 포트가 4개가 넘긴 한데 포트가 여러군데 나뉘어서 불편할듯
-
 추가로 비상정지(1층복귀) 기능을 구현함.
 memset으로 배열 상태를 전부 초기화.
 및, 1층에 도달할때까지 하강.
+
+1107
+문 열고 닫는 기능을 구현함
+
 */
 
 #define F_CPU 16000000
@@ -27,7 +30,7 @@ void ready(){
 	DDRB = 0xF0;
 	DDRC = 0xFF;
 	DDRD = 0x00;
-	DDRE = 0x00;
+	DDRE = 0xC0;
 	DDRF = 0xFF;
 	DDRG = 0x10;
 	
@@ -89,7 +92,7 @@ ISR(INT5_vect){
 }
 #pragma endregion
 
-//TODO : IMPL open(), close()
+//TODO : IMPL open(), close() OKEY? need to check
 #pragma region UTILITY
 int my_abs(int a){
 	if(a<0) return -1*a;
@@ -115,11 +118,27 @@ void move_down(){
 }
 
 void open(){ //TODO
-	
+	int T = 60;
+	while(T--){
+		PORTE = (PORTE&~0xC0)|0x40; my_delay(4);
+		PORTE = (PORTE&~0xC0)|0x80; my_delay(4);
+		PORTE = PORTE&~0xC0;
+		PORTF = (PORTF&~0xC0)|0x40; my_delay(4);
+		PORTF = (PORTF&~0xC0)|0x80; my_delay(4);
+		PORTF = PORTF&~0xC0;	
+	}
 }
 
 void close(){ //TODO
-	
+	int T = 60;
+	while(T--){
+		PORTF = (PORTF&~0xC0)|0x80; my_delay(4);
+		PORTF = (PORTF&~0xC0)|0x40; my_delay(4);
+		PORTF = PORTF&~0xC0;
+		PORTE = (PORTE&~0xC0)|0x80; my_delay(4);
+		PORTE = (PORTE&~0xC0)|0x40; my_delay(4);
+		PORTE = PORTE&~0xC0;
+	}
 }
 
 void updateSw(){
